@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#166E3F" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<title>Rewire — craving tracker</title>
+<style>
+  :root{
+    --bg:#0b1411; --card:#10201a; --line:#1e3a2e; --ink:#e9f5ee; --mut:#8fb6a3;
+    --brand:#26BD6C; --brand-deep:#166E3F; --warn:#f0a35e;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    background:radial-gradient(120% 80% at 50% -10%, #14352a 0%, var(--bg) 55%);
+    color:var(--ink); font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased; padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+  }
+  .wrap{max-width:520px;margin:0 auto;padding:20px 18px 64px}
+  header{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin:6px 0 18px}
+  h1{font-size:18px;margin:0;letter-spacing:.2px}
+  h1 span{color:var(--brand)}
+  .sub{color:var(--mut);font-size:12.5px}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 10px;text-align:center}
+  .stat b{display:block;font-size:24px;line-height:1.1}
+  .stat small{color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.6px}
+  .cta{
+    width:100%;border:0;border-radius:18px;padding:20px;cursor:pointer;
+    background:linear-gradient(180deg,var(--brand),var(--brand-deep));
+    color:#fff;font-size:18px;font-weight:650;letter-spacing:.2px;
+    box-shadow:0 10px 30px -12px var(--brand); transition:transform .08s;
+  }
+  .cta:active{transform:scale(.985)}
+  .cta small{display:block;font-weight:450;opacity:.85;font-size:12.5px;margin-top:4px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-top:18px}
+  .card h2{font-size:13px;text-transform:uppercase;letter-spacing:.7px;color:var(--mut);margin:0 0 12px}
+  .chart{display:flex;align-items:flex-end;gap:4px;height:84px}
+  .chart .col{flex:1;display:flex;flex-direction:column;justify-content:flex-end;gap:5px;align-items:center}
+  .chart .bar{width:100%;background:linear-gradient(180deg,var(--brand),var(--brand-deep));border-radius:5px 5px 2px 2px;min-height:3px;transition:height .3s}
+  .chart .bar.empty{background:#1a2c24}
+  .chart .lab{font-size:9px;color:var(--mut)}
+  ul.log{list-style:none;margin:0;padding:0}
+  ul.log li{display:flex;gap:10px;align-items:baseline;padding:9px 0;border-top:1px solid var(--line);font-size:14px}
+  ul.log li:first-child{border-top:0}
+  .pill{font-size:11px;color:var(--brand);border:1px solid var(--line);border-radius:999px;padding:1px 8px;white-space:nowrap}
+  .when{color:var(--mut);font-size:12px;white-space:nowrap;margin-left:auto}
+  .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+  .btn{flex:1;background:transparent;border:1px solid var(--line);color:var(--mut);border-radius:11px;padding:10px;font-size:13px;cursor:pointer}
+  .btn:active{background:#16291f}
+  .empty-note{color:var(--mut);font-size:13px;text-align:center;padding:8px 0}
+
+  /* overlay */
+  .overlay{position:fixed;inset:0;background:rgba(6,12,9,.92);backdrop-filter:blur(8px);
+    display:none;align-items:center;justify-content:center;z-index:10;padding:20px}
+  .overlay.on{display:flex}
+  .panel{max-width:440px;width:100%;text-align:center}
+  .reframe{font-size:22px;font-weight:650;margin:0 0 6px}
+  .reframe span{color:var(--brand)}
+  .lede{color:var(--mut);font-size:14px;margin:0 auto 22px;max-width:340px}
+  .ring{position:relative;width:180px;height:180px;margin:0 auto 8px}
+  .ring svg{transform:rotate(-90deg)}
+  .ring .num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .ring .num b{font-size:46px;line-height:1}
+  .ring .num small{color:var(--mut);font-size:12px;margin-top:2px}
+  .breath{color:var(--brand);font-size:14px;height:18px;margin:10px 0 4px;letter-spacing:.4px}
+  form{display:none;text-align:left;margin-top:14px}
+  form.on{display:block}
+  label{display:block;font-size:12px;color:var(--mut);margin:12px 0 5px;text-transform:uppercase;letter-spacing:.5px}
+  input[type=text],textarea{width:100%;background:#0c1813;border:1px solid var(--line);border-radius:11px;
+    color:var(--ink);padding:11px;font-size:15px;font-family:inherit}
+  textarea{resize:vertical;min-height:46px}
+  .scale{display:flex;gap:7px}
+  .scale button{flex:1;background:#0c1813;border:1px solid var(--line);color:var(--mut);
+    border-radius:11px;padding:10px 0;font-size:16px;cursor:pointer}
+  .scale button.sel{background:var(--brand-deep);border-color:var(--brand);color:#fff}
+  .save{width:100%;margin-top:18px;border:0;border-radius:13px;padding:15px;font-size:16px;font-weight:600;
+    background:var(--brand);color:#fff;cursor:pointer}
+  .skip{display:block;margin:14px auto 0;background:none;border:0;color:var(--mut);font-size:13px;cursor:pointer;text-decoration:underline}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1><span>Re</span>wire</h1>
+      <div class="sub">Every craving is a chance to rebuild the wiring.</div>
+    </div>
+  </header>
+
+  <div class="stats">
+    <div class="stat"><b id="s-streak">0</b><small>day streak</small></div>
+    <div class="stat"><b id="s-today">0</b><small>today</small></div>
+    <div class="stat"><b id="s-total">0</b><small>total</small></div>
+  </div>
+
+  <button class="cta" id="start">
+    I'm having a craving
+    <small>Start the 60-second rewire →</small>
+  </button>
+
+  <div class="card">
+    <h2>Last 14 days</h2>
+    <div class="chart" id="chart"></div>
+  </div>
+
+  <div class="card">
+    <h2>Recent rewires</h2>
+    <ul class="log" id="log"></ul>
+    <div class="row">
+      <button class="btn" id="export">Export</button>
+      <button class="btn" id="import">Import</button>
+      <button class="btn" id="remind">Remind me</button>
+    </div>
+  </div>
+</div>
+
+<!-- 60s protocol overlay -->
+<div class="overlay" id="overlay">
+  <div class="panel">
+    <p class="reframe"><span>Yes</span> — another chance to rewire.</p>
+    <p class="lede">This is a dopamine spike — a prediction, not a need. The window is open for ~60s. Sit with the wave and let it crest.</p>
+
+    <div class="ring">
+      <svg width="180" height="180">
+        <circle cx="90" cy="90" r="80" fill="none" stroke="#1c3328" stroke-width="10"/>
+        <circle id="prog" cx="90" cy="90" r="80" fill="none" stroke="#26BD6C" stroke-width="10"
+                stroke-linecap="round" stroke-dasharray="502.6" stroke-dashoffset="0"/>
+      </svg>
+      <div class="num"><b id="count">60</b><small>seconds</small></div>
+    </div>
+    <div class="breath" id="breath">breathe in…</div>
+
+    <form id="form">
+      <label>How intense was it?</label>
+      <div class="scale" id="scale">
+        <button type="button" data-v="1">1</button>
+        <button type="button" data-v="2">2</button>
+        <button type="button" data-v="3">3</button>
+        <button type="button" data-v="4">4</button>
+        <button type="button" data-v="5">5</button>
+      </div>
+      <label>What set it off?</label>
+      <input type="text" id="trigger" placeholder="e.g. bored, scrolling, after dinner" />
+      <label>What will you do instead?</label>
+      <input type="text" id="instead" placeholder="e.g. 10 pushups, walk, water" />
+      <label>Note (optional)</label>
+      <textarea id="note" placeholder="anything worth remembering"></textarea>
+      <button type="submit" class="save">Log this rewire</button>
+    </form>
+
+    <button class="skip" id="logNow">Log now &amp; skip the timer</button>
+  </div>
+</div>
+
+<input type="file" id="file" accept="application/json" hidden />
+
+<script>
+(function(){
+  "use strict";
+  var KEY = "rewire.log.v1";
+  var WINDOW = 60, CIRC = 2 * Math.PI * 80;
+
+  function load(){ try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch(e){ return []; } }
+  function save(rows){ localStorage.setItem(KEY, JSON.stringify(rows)); }
+  function dayKey(d){ return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate(); }
+  function $(id){ return document.getElementById(id); }
+
+  function streak(rows){
+    var days = {}; rows.forEach(function(r){ days[dayKey(new Date(r.ts))] = 1; });
+    var d = new Date(), n = 0;
+    if(!days[dayKey(d)]){ d.setDate(d.getDate()-1); if(!days[dayKey(d)]) return 0; }
+    while(days[dayKey(d)]){ n++; d.setDate(d.getDate()-1); }
+    return n;
+  }
+
+  function render(){
+    var rows = load();
+    var today = dayKey(new Date());
+    var todayN = rows.filter(function(r){ return dayKey(new Date(r.ts))===today; }).length;
+    $("s-total").textContent = rows.length;
+    $("s-today").textContent = todayN;
+    $("s-streak").textContent = streak(rows);
+
+    // 14-day chart
+    var counts = [], labels = [];
+    for(var i=13;i>=0;i--){
+      var d = new Date(); d.setDate(d.getDate()-i);
+      var k = dayKey(d);
+      counts.push(rows.filter(function(r){ return dayKey(new Date(r.ts))===k; }).length);
+      labels.push(i%3===0 ? (d.getMonth()+1)+"/"+d.getDate() : "");
+    }
+    var max = Math.max(1, Math.max.apply(null, counts));
+    var chart = $("chart"); chart.innerHTML = "";
+    counts.forEach(function(c, idx){
+      var col = document.createElement("div"); col.className = "col";
+      var bar = document.createElement("div");
+      bar.className = "bar" + (c===0 ? " empty" : "");
+      bar.style.height = (c===0 ? 3 : Math.round(c/max*72)) + "px";
+      bar.title = c + " rewire" + (c===1?"":"s");
+      var lab = document.createElement("div"); lab.className = "lab"; lab.textContent = labels[idx];
+      col.appendChild(bar); col.appendChild(lab); chart.appendChild(col);
+    });
+
+    // recent
+    var ul = $("log"); ul.innerHTML = "";
+    var recent = rows.slice(-8).reverse();
+    if(!recent.length){ ul.innerHTML = '<div class="empty-note">No rewires yet. Your first craving is your first win.</div>'; return; }
+    recent.forEach(function(r){
+      var li = document.createElement("li");
+      var t = new Date(r.ts);
+      var when = t.toLocaleDateString(undefined,{month:"short",day:"numeric"}) + " " +
+                 t.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"});
+      var txt = (r.trigger||"craving") + (r.instead ? " → " + r.instead : "");
+      li.innerHTML = '<span class="pill">'+(r.intensity?("⚡"+r.intensity):"⚡")+'</span>'+
+                     '<span>'+escapeHtml(txt)+'</span>'+
+                     '<span class="when">'+when+'</span>';
+      ul.appendChild(li);
+    });
+  }
+
+  function escapeHtml(s){ return (s||"").replace(/[&<>"]/g,function(c){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+
+  // ---- 60s protocol ----
+  var timer = null, intensity = 0;
+  var breaths = ["breathe in…","hold…","breathe out…","let it pass…"];
+
+  function openOverlay(){
+    intensity = 0;
+    $("trigger").value = ""; $("instead").value = ""; $("note").value = "";
+    Array.prototype.forEach.call(document.querySelectorAll("#scale button"),
+      function(b){ b.classList.remove("sel"); });
+    $("form").classList.remove("on");
+    $("overlay").classList.add("on");
+    runTimer();
+  }
+  function closeOverlay(){ $("overlay").classList.remove("on"); clearInterval(timer); }
+
+  function runTimer(){
+    var left = WINDOW;
+    $("count").textContent = left;
+    $("prog").style.strokeDashoffset = 0;
+    $("breath").textContent = breaths[0];
+    clearInterval(timer);
+    timer = setInterval(function(){
+      left--;
+      $("count").textContent = Math.max(0,left);
+      $("prog").style.strokeDashoffset = ((WINDOW-left)/WINDOW*CIRC).toFixed(1);
+      $("breath").textContent = breaths[Math.floor((WINDOW-left)/4)%breaths.length];
+      if(left<=0){ clearInterval(timer); revealForm(true); }
+    },1000);
+  }
+  function revealForm(done){
+    if(done){ $("breath").textContent = "window's open — lock in the new wiring"; }
+    $("form").classList.add("on");
+    $("form").scrollIntoView({behavior:"smooth",block:"center"});
+  }
+
+  $("start").addEventListener("click", openOverlay);
+  $("logNow").addEventListener("click", function(){ clearInterval(timer); revealForm(false); });
+
+  document.querySelectorAll("#scale button").forEach(function(b){
+    b.addEventListener("click", function(){
+      intensity = +b.getAttribute("data-v");
+      document.querySelectorAll("#scale button").forEach(function(x){ x.classList.remove("sel"); });
+      b.classList.add("sel");
+    });
+  });
+
+  $("form").addEventListener("submit", function(e){
+    e.preventDefault();
+    var rows = load();
+    rows.push({
+      ts: new Date().toISOString(),
+      intensity: intensity,
+      trigger: $("trigger").value.trim(),
+      instead: $("instead").value.trim(),
+      note: $("note").value.trim()
+    });
+    save(rows);
+    closeOverlay();
+    render();
+  });
+
+  // close overlay by tapping the dimmed backdrop
+  $("overlay").addEventListener("click", function(e){ if(e.target===$("overlay")) closeOverlay(); });
+
+  // ---- export / import ----
+  $("export").addEventListener("click", function(){
+    var blob = new Blob([JSON.stringify(load(),null,2)], {type:"application/json"});
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "rewire-export-" + new Date().toISOString().slice(0,10) + ".json";
+    a.click();
+  });
+  $("import").addEventListener("click", function(){ $("file").click(); });
+  $("file").addEventListener("change", function(e){
+    var f = e.target.files[0]; if(!f) return;
+    var rd = new FileReader();
+    rd.onload = function(){
+      try{
+        var incoming = JSON.parse(rd.result);
+        if(!Array.isArray(incoming)) throw 0;
+        var merged = load().concat(incoming);
+        var seen = {}, out = [];
+        merged.forEach(function(r){ if(r&&r.ts&&!seen[r.ts]){ seen[r.ts]=1; out.push(r); } });
+        out.sort(function(a,b){ return a.ts<b.ts?-1:1; });
+        save(out); render();
+        alert("Imported. Total rewires: " + out.length);
+      }catch(err){ alert("That file didn't look like a rewire export."); }
+    };
+    rd.readAsText(f);
+    e.target.value = "";
+  });
+
+  // ---- gentle reminder (while page/PWA is open) ----
+  $("remind").addEventListener("click", function(){
+    if(!("Notification" in window)){ alert("Notifications aren't supported here."); return; }
+    Notification.requestPermission().then(function(p){
+      if(p!=="granted"){ alert("Reminders need notification permission."); return; }
+      localStorage.setItem("rewire.remind","1");
+      alert("Reminders on. Add this page to your home screen so it can nudge you to check in.");
+      scheduleReminder();
+    });
+  });
+  function scheduleReminder(){
+    if(localStorage.getItem("rewire.remind")!=="1") return;
+    setInterval(function(){
+      if(Notification.permission==="granted"){
+        new Notification("Rewire check-in", { body:"Any cravings today? Each one logged is a pathway rebuilt." });
+      }
+    }, 1000*60*60*4); // every 4h while open
+  }
+
+  if(localStorage.getItem("rewire.remind")==="1" && "Notification" in window) scheduleReminder();
+  render();
+})();
+</script>
+</body>
+</html>
