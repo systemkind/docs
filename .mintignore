@@ -5,6 +5,3 @@
 # Draft content
 drafts/
 *.draft.mdx
-
-# Personal tooling — not part of the company docs
-craving-tracker/
